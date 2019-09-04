@@ -1,6 +1,8 @@
 package main
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/gorilla/websocket"
+)
 
 type client struct {
 	socket *websocket.Conn
@@ -11,6 +13,7 @@ type client struct {
 func (c *client) read()  {
 	for {
 		if _, msg, err := c.socket.ReadMessage(); err == nil {
+
 		  c.room.forward <- msg
 		} else {
 			break
@@ -22,6 +25,7 @@ func (c *client) read()  {
 func (c *client) write() {
 	for msg := range c.send {
 		if err := c.socket.WriteMessage(websocket.TextMessage, msg);
+
 		  err != nil {
 		  	break
 		}
