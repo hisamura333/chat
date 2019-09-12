@@ -14,6 +14,11 @@ import (
 	"text/template"
 )
 
+var avatars Avatar = TryAvatars{
+	UseFileSystemAvatar,
+	UseGravatar,
+	UseAuthAvatar,
+}
 type templateHandler struct {
 	once     sync.Once
 	filename string
@@ -47,11 +52,27 @@ func main() {
 		facebook.New("537611606322077", "f9f4d77b3d3f4f5775369f5c9f88f65e", "http://localhost:8080/auth/callback/facebook"),
 	)
 
-	r := newRoom()
+	r := newRoom(UseFileSystemAvatar)
 	http.Handle("/chat", MustAuth(&templateHandler{filename: "chat.html"}))
 	http.Handle("/login", &templateHandler{filename: "login.html"})
 	http.HandleFunc("/auth/", loginHandler)
 	http.Handle("/room", r)
+	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name: "auth",
+			Value: "",
+			Path: "/",
+			MaxAge: -1,
+		})
+		w.Header()["Location"] = []string{"/chat"}
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	})
+	http.Handle("/upload", &templateHandler{filename: "upload.html"})
+	http.HandleFunc("/uploader", uploaderHandler)
+	http.Handle("/avatars/",
+		http.StripPrefix("/avatars",
+			http.FileServer(http.Dir("./avatars"))))
+
 
 	go r.run()
 	log.Println("webサーバーを起動します。ポート: ", *addr)
